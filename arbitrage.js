@@ -42,9 +42,12 @@ const getPairs = async () => {
           let lv1 = [],
             lv2 = [],
             lv3 = [],
-            lv1Precision = 0,
-            lv2Precision = 0,
-            lv3Precision = 0,
+            lv1BasePrecision = 0,
+            lv1QuotePrecision = 0,
+            lv2BasePrecision = 0,
+            lv2QuotePrecision = 0,
+            lv3BasePrecision = 0,
+            lv3QuotePrecision = 0,
             lv1MinAmount = 0.0,
             lv2MinAmount = 0.0,
             lv3MinAmount = 0.0,
@@ -54,39 +57,45 @@ const getPairs = async () => {
           if (symValJ[d1 + d2]) {
             lv1.push(d1 + d2);
             l1 = "num";
-            lv1Precision = pairInfo[d1 + d2].basePrecision;
+            lv1BasePrecision = pairInfo[d1 + d2].basePrecision;
+            lv1QuotePrecision = pairInfo[d1 + d2].quotePrecision;
             lv1MinAmount = pairInfo[d1 + d2].minTradeQty;
           }
           if (symValJ[d2 + d1]) {
             lv1.push(d2 + d1);
             l1 = "den";
-            lv1Precision = pairInfo[d2 + d1].quotePrecision;
+            lv1BasePrecision = pairInfo[d2 + d1].basePrecision;
+            lv1QuotePrecision = pairInfo[d2 + d1].quotePrecision;
             lv1MinAmount = pairInfo[d2 + d1].minTradeAmt;
           }
 
           if (symValJ[d2 + d3]) {
             lv2.push(d2 + d3);
             l2 = "num";
-            lv2Precision = pairInfo[d2 + d3].basePrecision;
+            lv2BasePrecision = pairInfo[d2 + d3].basePrecision;
+            lv2QuotePrecision = pairInfo[d2 + d3].quotePrecision;
             lv2MinAmount = pairInfo[d2 + d3].minTradeQty;
           }
           if (symValJ[d3 + d2]) {
             lv2.push(d3 + d2);
             l2 = "den";
-            lv2Precision = pairInfo[d3 + d2].quotePrecision;
+            lv2BasePrecision = pairInfo[d3 + d2].basePrecision;
+            lv2QuotePrecision = pairInfo[d3 + d2].quotePrecision;
             lv2MinAmount = pairInfo[d3 + d2].minTradeAmt;
           }
 
           if (symValJ[d3 + d1]) {
             lv3.push(d3 + d1);
             l3 = "num";
-            lv3Precision = pairInfo[d3 + d1].basePrecision;
+            lv3BasePrecision = pairInfo[d3 + d1].basePrecision;
+            lv3QuotePrecision = pairInfo[d3 + d1].quotePrecision;
             lv3MinAmount = pairInfo[d3 + d1].minTradeQty;
           }
           if (symValJ[d1 + d3]) {
             lv3.push(d1 + d3);
             l3 = "den";
-            lv3Precision = pairInfo[d1 + d3].quotePrecision;
+            lv3BasePrecision = pairInfo[d1 + d3].basePrecision;
+            lv3QuotePrecision = pairInfo[d1 + d3].quotePrecision;
             lv3MinAmount = pairInfo[d1 + d3].minTradeAmt;
           }
 
@@ -101,12 +110,18 @@ const getPairs = async () => {
               lv1: lv1[0],
               lv2: lv2[0],
               lv3: lv3[0],
-              lv1Precision: lv1Precision,
-              lv2Precision: lv2Precision,
-              lv3Precision: lv3Precision,
+              lv1BasePrecision: lv1BasePrecision,
+              lv1QuotePrecision: lv1QuotePrecision,
+              lv2BasePrecision: lv2BasePrecision,
+              lv2QuotePrecision: lv2QuotePrecision,
+              lv3BasePrecision: lv3BasePrecision,
+              lv3QuotePrecision: lv3QuotePrecision,
               lv1MinAmount: lv1MinAmount,
               lv2MinAmount: lv2MinAmount,
               lv3MinAmount: lv3MinAmount,
+              lv1Price: "",
+              lv2Price: "",
+              lv3Price: "",
               value: -100,
               tpath: "",
             });
@@ -146,7 +161,9 @@ const processData = (pl) => {
         ) {
           //Level 1 calculation
           let lv_calc, lv_str;
+          let lv1Price, lv2Price, lv3Price;
           if (d.l1 === "num") {
+            lv1Price = '' + symValJ[d.lv1]["bidPrice"];
             lv_calc = symValJ[d.lv1]["bidPrice"];
             lv_str =
               d.d1 +
@@ -159,6 +176,7 @@ const processData = (pl) => {
               d.d2 +
               "<br/>";
           } else {
+            lv1Price = '' + symValJ[d.lv1]["askPrice"];
             lv_calc = 1 / symValJ[d.lv1]["askPrice"];
             lv_str =
               d.d1 +
@@ -174,6 +192,7 @@ const processData = (pl) => {
 
           //Level 2 calculation
           if (d.l2 === "num") {
+            lv2Price = '' + symValJ[d.lv2]["bidPrice"];
             lv_calc *= symValJ[d.lv2]["bidPrice"];
             lv_str +=
               d.d2 +
@@ -186,6 +205,7 @@ const processData = (pl) => {
               d.d3 +
               "<br/>";
           } else {
+            lv2Price = '' + symValJ[d.lv2]["askPrice"];
             lv_calc *= 1 / symValJ[d.lv2]["askPrice"];
             lv_str +=
               d.d2 +
@@ -201,6 +221,7 @@ const processData = (pl) => {
 
           //Level 3 calculation
           if (d.l3 === "num") {
+            lv3Price = '' + symValJ[d.lv3]["bidPrice"];
             lv_calc *= symValJ[d.lv3]["bidPrice"];
             lv_str +=
               d.d3 +
@@ -212,6 +233,7 @@ const processData = (pl) => {
               "->" +
               d.d1;
           } else {
+            lv3Price = '' + symValJ[d.lv3]["askPrice"];
             lv_calc *= 1 / symValJ[d.lv3]["askPrice"];
             lv_str +=
               d.d3 +
@@ -226,13 +248,16 @@ const processData = (pl) => {
 
           d.tpath = lv_str;
           d.value = parseFloat(parseFloat((lv_calc - 1) * 100).toFixed(3));
+          d.lv1Price = lv1Price;
+          d.lv2Price = lv2Price;
+          d.lv3Price = lv3Price;
         }
       });
 
     // Arbitrage search
     const bestPair = sort(pairs
                 .filter((d) => d.d1 == 'USDT')
-                .filter((d) => parseFloat(d.value) >= parseFloat(2.0)))
+                .filter((d) => parseFloat(d.value) >= parseFloat(0.5)))
                 .desc((u) => u.value)[0];
     if (bestPair !== undefined) {
         payment.makeArbitrage(bestPair);

@@ -38,7 +38,9 @@ const { WebsocketClient } = require("bybit-api");
 //}
 //https://bybit-exchange.github.io/docs/v5/websocket/private/execution
 
-let filledOrders = [];
+let filledOrders = {};
+let successStatuses = ['PartiallyFilledCanceled', 'Filled'];
+let failedStatuses = ['Cancelled', 'Rejected', 'Deactivated'];
 
 const startListenOrders = () => {
     const wsClient = new WebsocketClient({
@@ -48,11 +50,21 @@ const startListenOrders = () => {
     });
     
     wsClient.on('update', (data) => {
-      console.log('Order filled message ', JSON.stringify(data, null, 2));
-      filledOrders[data.data[0].orderId] = data.data[0].execQty;
+      console.log('Order message ', JSON.stringify(data, null, 2));
+      
+      if (!successStatuses.includes(data.data[0].orderStatus) 
+        && !failedStatuses.includes(data.data[0].orderStatus)) {
+        console.log('Order is processing. Skip message ');
+        return;
+      }
+      
+      filledOrders[data.data[0].orderId] = { 
+        execQty: data.data[0].cumExecQty, 
+        status: (successStatuses.includes(data.data[0].orderStatus)) ? 'success' : 'failed'
+      };
     });
    
-    wsClient.subscribe(['execution']);     
+    wsClient.subscribe(['order']);     
 };
 
 module.exports = { startListenOrders, filledOrders };
