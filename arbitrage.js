@@ -1,3 +1,4 @@
+require('log-timestamp');
 const { log, error } = console;
 const got = require("got");
 const Websocket = require("ws");
@@ -29,7 +30,7 @@ const getPairs = async () => {
   });
   
   validPairs.forEach((symbol) => {
-    symValJ[symbol] = { bidPrice: 0, askPrice: 0 };
+    symValJ[symbol] = { bidPrice: 0, askPrice: 0, bidPriceDiff: 0.0, askPriceDiff: 0.0 };
   });
 
   let s1 = symbols,
@@ -48,9 +49,12 @@ const getPairs = async () => {
             lv2QuotePrecision = 0,
             lv3BasePrecision = 0,
             lv3QuotePrecision = 0,
-            lv1MinAmount = 0.0,
-            lv2MinAmount = 0.0,
-            lv3MinAmount = 0.0,
+            lv1MinTradeQty = 0.0,
+            lv1MinTradeAmt = 0.0,
+            lv2MinTradeQty = 0.0,
+            lv2MinTradeAmt = 0.0,
+            lv3MinTradeQty = 0.0,
+            lv3MinTradeAmt = 0.0,
             l1 = "",
             l2 = "",
             l3 = "";
@@ -59,14 +63,16 @@ const getPairs = async () => {
             l1 = "num";
             lv1BasePrecision = pairInfo[d1 + d2].basePrecision;
             lv1QuotePrecision = pairInfo[d1 + d2].quotePrecision;
-            lv1MinAmount = pairInfo[d1 + d2].minTradeQty;
+            lv1MinTradeQty = pairInfo[d1 + d2].minTradeQty;
+            lv1MinTradeAmt = pairInfo[d1 + d2].minTradeAmt;
           }
           if (symValJ[d2 + d1]) {
             lv1.push(d2 + d1);
             l1 = "den";
             lv1BasePrecision = pairInfo[d2 + d1].basePrecision;
             lv1QuotePrecision = pairInfo[d2 + d1].quotePrecision;
-            lv1MinAmount = pairInfo[d2 + d1].minTradeAmt;
+            lv1MinTradeQty = pairInfo[d2 + d1].minTradeQty;
+            lv1MinTradeAmt = pairInfo[d2 + d1].minTradeAmt;
           }
 
           if (symValJ[d2 + d3]) {
@@ -74,14 +80,16 @@ const getPairs = async () => {
             l2 = "num";
             lv2BasePrecision = pairInfo[d2 + d3].basePrecision;
             lv2QuotePrecision = pairInfo[d2 + d3].quotePrecision;
-            lv2MinAmount = pairInfo[d2 + d3].minTradeQty;
+            lv2MinTradeQty = pairInfo[d2 + d3].minTradeQty;
+            lv2MinTradeAmt = pairInfo[d2 + d3].minTradeAmt;
           }
           if (symValJ[d3 + d2]) {
             lv2.push(d3 + d2);
             l2 = "den";
             lv2BasePrecision = pairInfo[d3 + d2].basePrecision;
             lv2QuotePrecision = pairInfo[d3 + d2].quotePrecision;
-            lv2MinAmount = pairInfo[d3 + d2].minTradeAmt;
+            lv2MinTradeQty = pairInfo[d3 + d2].minTradeQty;
+            lv2MinTradeAmt = pairInfo[d3 + d2].minTradeAmt;
           }
 
           if (symValJ[d3 + d1]) {
@@ -89,14 +97,16 @@ const getPairs = async () => {
             l3 = "num";
             lv3BasePrecision = pairInfo[d3 + d1].basePrecision;
             lv3QuotePrecision = pairInfo[d3 + d1].quotePrecision;
-            lv3MinAmount = pairInfo[d3 + d1].minTradeQty;
+            lv3MinTradeQty = pairInfo[d3 + d1].minTradeQty;
+            lv3MinTradeAmt = pairInfo[d3 + d1].minTradeAmt;
           }
           if (symValJ[d1 + d3]) {
             lv3.push(d1 + d3);
             l3 = "den";
             lv3BasePrecision = pairInfo[d1 + d3].basePrecision;
             lv3QuotePrecision = pairInfo[d1 + d3].quotePrecision;
-            lv3MinAmount = pairInfo[d1 + d3].minTradeAmt;
+            lv3MinTradeQty = pairInfo[d1 + d3].minTradeQty;
+            lv3MinTradeAmt = pairInfo[d1 + d3].minTradeAmt;
           }
 
           if (lv1.length && lv2.length && lv3.length) {
@@ -116,9 +126,12 @@ const getPairs = async () => {
               lv2QuotePrecision: lv2QuotePrecision,
               lv3BasePrecision: lv3BasePrecision,
               lv3QuotePrecision: lv3QuotePrecision,
-              lv1MinAmount: lv1MinAmount,
-              lv2MinAmount: lv2MinAmount,
-              lv3MinAmount: lv3MinAmount,
+              lv1MinTradeQty: lv1MinTradeQty,
+              lv1MinTradeAmt: lv1MinTradeAmt,
+              lv2MinTradeQty: lv2MinTradeQty,
+              lv2MinTradeAmt: lv2MinTradeAmt,
+              lv3MinTradeQty: lv3MinTradeQty,
+              lv3MinTradeAmt: lv3MinTradeAmt,
               lv1Price: "",
               lv2Price: "",
               lv3Price: "",
@@ -144,8 +157,20 @@ const processData = (pl) => {
     const { bp: bidPrice, ap: askPrice } = data;
     if (!bidPrice && !askPrice) return;
 
-    if (bidPrice) symValJ[symbol].bidPrice = bidPrice * 1;
-    if (askPrice) symValJ[symbol].askPrice = askPrice * 1;
+    if (bidPrice)  {
+        if (symValJ[symbol].bidPrice) {
+            symValJ[symbol].bidPriceDiff = (symValJ[symbol].bidPrice - bidPrice * 1) / 
+                ((symValJ[symbol].bidPrice + bidPrice * 1) / 2) * 100;
+        }
+        symValJ[symbol].bidPrice = bidPrice * 1;
+    }
+    if (askPrice) {
+        if (symValJ[symbol].askPrice) {
+            symValJ[symbol].askPriceDiff = (symValJ[symbol].askPrice - askPrice * 1) / 
+                ((symValJ[symbol].askPrice + askPrice * 1) / 2) * 100;
+        }
+        symValJ[symbol].askPrice = askPrice * 1;        
+    }
 
     //Perform calculation and send alerts
     pairs
@@ -254,14 +279,16 @@ const processData = (pl) => {
         }
       });
 
-    // Arbitrage search
-    const bestPair = sort(pairs
-                .filter((d) => d.d1 == 'USDT')
-                .filter((d) => parseFloat(d.value) >= parseFloat(0.5)))
-                .desc((u) => u.value)[0];
-    if (bestPair !== undefined) {
-        payment.makeArbitrage(bestPair);
-    }
+        // Arbitrage search
+        const bestPair = sort(pairs
+                    .filter((d) => d.d1 == 'USDT')
+                    .filter((d) => d.d3 == 'USDC')
+                    .filter((d) => parseFloat(d.value) >= parseFloat(0.5)))
+//                    .filter((d) => Math.abs(parseFloat(d.value) - parseFloat(symValJ[symbol].askPriceDiff)) <= parseFloat(0.1)))
+                    .desc((u) => u.value)[0];
+        if (bestPair !== undefined) {
+            payment.makeArbitrage(bestPair);
+        }
   } catch (err) {
     error(err);
   }

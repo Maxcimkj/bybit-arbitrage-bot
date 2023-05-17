@@ -60,7 +60,7 @@ const startListenOrders = () => {
       
       filledOrders[data.data[0].orderId] = { 
         execQty: data.data[0].cumExecQty, 
-        status: (successStatuses.includes(data.data[0].orderStatus)) ? 'success' : 'failed'
+        status: (successStatuses.includes(data.data[0].orderStatus)) ? 'success' : 'cancelled'
       };
     });
    
